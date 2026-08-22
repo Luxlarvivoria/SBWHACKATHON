@@ -8,3 +8,8 @@ Scientists talking. The Voices tab resolves who actually publishes on the topic 
 Interview discovery is deep-link based, not indexed. YouTube, podcast, and news APIs all need server-side keys, so a browser-only app can't pull those results inline. What it does instead is find the right people by name and hand you precise, pre-built searches into video, podcasts, and news for each of them. In-app interview results would need a small backend — say the word and I'll add one.
 Stance labels are a reading aid, not a verdict. I tuned hard for precision after finding false positives (a constitutional-law book matching "power posing" on the word power; background sentences like "previous results have been contradictory" read as attacks). The gates I added cut those, at the cost of leaving more papers unlabeled. Confidence is shown on every call, and the evidence panel says so in the UI.
 Non-biomedical topics work too — I tested ocean iron fertilization and it correctly named Philip Boyd and Andreas Oschlies as the leading voices, though journal commentary is thinner there since Europe PMC is biomedical.
+
+# How to run:
+1) Download all file as zip and extract it.
+2) Install or necessary library and then run serve.cmd
+3) Your browser should automatically open the tab with url "http://localhost:8000/". If not, you can open it yourself.
