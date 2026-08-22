@@ -11,5 +11,5 @@ Non-biomedical topics work too — I tested ocean iron fertilization and it corr
 
 # How to run:
 1) Download all file as zip and extract it.
-2) Install or necessary library and then run serve.cmd
+2) Install all necessary libraries and then run serve.cmd
 3) Your browser should automatically open the tab with url "http://localhost:8000/". If not, you can open it yourself.
