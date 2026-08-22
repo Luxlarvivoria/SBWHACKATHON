@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Consilium</title>
+<meta name="description" content="Search research papers across publishers, read them in plain language, and see which studies support or challenge them.">
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128218;</text></svg>">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">◈</span>
+    <span class="brand-name">Consilium</span>
+  </div>
+  <div class="topbar-actions">
+    <button id="btn-library" class="ghost-btn" title="Saved papers">★ Library <span id="library-count" class="pill">0</span></button>
+    <button id="btn-settings" class="ghost-btn" title="Settings">⚙ Settings</button>
+  </div>
+</header>
+
+<section class="search-shell">
+  <form id="search-form" class="search-form" autocomplete="off">
+    <input id="q" class="search-input" type="search" placeholder="A topic, question, or claim — e.g. “does intermittent fasting improve insulin sensitivity?”" spellcheck="false">
+    <button class="primary-btn" type="submit">Search</button>
+  </form>
+  <div class="filters">
+    <label>From <input id="f-from" type="number" min="1800" max="2100" placeholder="1900" class="mini"></label>
+    <label>To <input id="f-to" type="number" min="1800" max="2100" placeholder="2026" class="mini"></label>
+    <label>Sort
+      <select id="f-sort" class="mini">
+        <option value="relevance_score:desc">Relevance</option>
+        <option value="cited_by_count:desc">Most cited</option>
+        <option value="publication_date:desc">Newest</option>
+      </select>
+    </label>
+    <label class="chk"><input id="f-oa" type="checkbox"> Open access only</label>
+    <label class="chk"><input id="f-reviews" type="checkbox"> Include reviews &amp; meta-analyses</label>
+    <span class="spacer"></span>
+    <span id="source-status" class="source-status"></span>
+  </div>
+</section>
+
+<main class="layout">
+  <aside class="results-pane" id="results-pane">
+    <div class="pane-head">
+      <h2 id="results-title">Start with a topic</h2>
+      <span id="results-meta" class="muted"></span>
+    </div>
+    <div id="results" class="results">
+      <div class="empty-state">
+        <p class="empty-lead">Consilium searches <strong>OpenAlex</strong>, <strong>Crossref</strong> and <strong>Europe PMC</strong> at once — that spans Elsevier, Springer Nature, Wiley, IEEE, PLOS, Frontiers, MDPI, arXiv, bioRxiv, PubMed and thousands more.</p>
+        <p>Pick any result to get a plain-language read, the studies that <em>back it up</em>, the studies that <em>push back</em>, and scientists talking about the topic out loud.</p>
+        <div class="suggest-row">
+          <button class="suggest" data-q="microplastics in human blood">microplastics in human blood</button>
+          <button class="suggest" data-q="does intermittent fasting improve insulin sensitivity">intermittent fasting &amp; insulin</button>
+          <button class="suggest" data-q="room temperature superconductivity LK-99">room-temperature superconductivity</button>
+          <button class="suggest" data-q="gut microbiome and depression causal">gut microbiome &amp; depression</button>
+          <button class="suggest" data-q="ocean iron fertilization carbon sequestration">ocean iron fertilization</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <section class="detail-pane" id="detail-pane">
+    <div class="detail-placeholder" id="detail-placeholder">
+      <div class="ph-icon">◈</div>
+      <p>Select a paper to open the reading room.</p>
+    </div>
+    <div id="detail" class="detail hidden"></div>
+  </section>
+</main>
+
+<dialog id="settings-dialog" class="dialog">
+  <form method="dialog" class="dialog-body">
+    <h3>Settings</h3>
+
+    <label class="field">
+      <span>Contact email for API etiquette <small>(optional)</small></span>
+      <input id="s-mailto" type="email" placeholder="you@example.com">
+      <small class="hint">OpenAlex and Crossref give faster, more reliable service to requests that identify themselves. Stored only in your browser.</small>
+    </label>
+
+    <label class="field">
+      <span>Anthropic API key <small>(optional)</small></span>
+      <input id="s-apikey" type="password" placeholder="sk-ant-...">
+      <small class="hint">Unlocks a real plain-English rewrite of any abstract and AI-checked stance labels. The key is kept in this browser's localStorage and sent only to api.anthropic.com. Leave blank to use the offline heuristics.</small>
+    </label>
+
+    <label class="chk block"><input id="s-s2" type="checkbox"> Use Semantic Scholar for citation contexts <small>(richer, but rate-limited without a key)</small></label>
+
+    <div class="dialog-actions">
+      <button value="cancel" class="ghost-btn">Close</button>
+      <button id="s-save" value="save" class="primary-btn">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="library-dialog" class="dialog">
+  <div class="dialog-body">
+    <h3>Library</h3>
+    <div id="library-list" class="library-list"></div>
+    <div class="dialog-actions">
+      <button id="lib-export" class="ghost-btn">Copy as BibTeX-ish</button>
+      <button id="lib-close" class="primary-btn">Close</button>
+    </div>
+  </div>
+</dialog>
+
+<div id="toast" class="toast hidden"></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
