@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Consilium</title>
+<meta name="description" content="Search research papers across publishers, read them in plain language, and see which studies support or challenge them.">
+<meta name="color-scheme" content="dark">
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128218;</text></svg>">
+</head>
+<body class="home">
+
+<header class="topbar" id="topbar">
+  <button class="brand" id="btn-home" type="button" title="Back to the home page" aria-label="Consilium home">
+    <span class="brand-mark">◈</span>
+    <span class="brand-name">Consilium</span>
+  </button>
+</header>
+
+<section class="search-shell" id="search-shell">
+  <div class="home-lead">
+    <h1 class="home-title">What does the research actually say?</h1>
+    <p class="home-sub">One search across <strong>OpenAlex</strong>, <strong>Crossref</strong> and <strong>Europe PMC</strong>. Open any paper for a plain-language read, the studies that back it up, the ones that push back, and a quiz on what you just read.</p>
+  </div>
+
+  <form id="search-form" class="search-form" autocomplete="off">
+    <span class="search-icon" aria-hidden="true">⌕</span>
+    <input id="q" class="search-input" type="search" placeholder="Ask anything — a topic, a question, a claim" spellcheck="false">
+    <button class="search-go" type="submit" title="Search" aria-label="Search">→</button>
+  </form>
+
+  <div class="chip-rail" id="chip-rail">
+    <label class="chk chip"><input id="f-oa" type="checkbox"><span>Open access</span></label>
+    <label class="chk chip"><input id="f-reviews" type="checkbox"><span>Reviews &amp; meta-analyses</span></label>
+    <label class="chip chip-select">
+      <select id="f-sort">
+        <option value="relevance_score:desc">Most relevant</option>
+        <option value="cited_by_count:desc">Most cited</option>
+        <option value="publication_date:desc">Newest</option>
+      </select>
+    </label>
+    <label class="chip chip-range">
+      <span class="chip-k">Years</span>
+      <input id="f-from" type="number" min="1800" max="2100" placeholder="any" class="mini" aria-label="From year">
+      <span class="dash">–</span>
+      <input id="f-to" type="number" min="1800" max="2100" placeholder="now" class="mini" aria-label="To year">
+    </label>
+    <span id="source-status" class="source-status chip chip-status"></span>
+  </div>
+
+  <div class="chip-rail recents hidden" id="recents-rail"></div>
+
+  <div class="chip-rail home-suggests">
+    <button class="suggest" data-q="microplastics in human blood">microplastics in human blood</button>
+    <button class="suggest" data-q="does intermittent fasting improve insulin sensitivity">intermittent fasting &amp; insulin</button>
+    <button class="suggest" data-q="room temperature superconductivity LK-99">room-temperature superconductivity</button>
+    <button class="suggest" data-q="gut microbiome and depression causal">gut microbiome &amp; depression</button>
+    <button class="suggest" data-q="ocean iron fertilization carbon sequestration">ocean iron fertilization</button>
+  </div>
+</section>
+
+<main class="layout">
+  <aside class="results-pane" id="results-pane">
+    <div class="pane-head">
+      <h2 id="results-title">Start with a topic</h2>
+      <span id="results-meta" class="muted"></span>
+    </div>
+    <div id="results" class="results"></div>
+  </aside>
+
+  <section class="detail-pane" id="detail-pane">
+    <div id="detail" class="detail hidden"></div>
+  </section>
+</main>
+
+<nav class="dock" id="dock" aria-label="Main">
+  <button class="dock-btn on" id="dock-feed" data-dock="feed"><span class="dock-ico">⌂</span><span class="dock-label">Feed</span></button>
+  <button class="dock-btn" id="dock-search" data-dock="search"><span class="dock-ico">⌕</span><span class="dock-label">Search</span></button>
+  <button class="dock-btn" id="btn-library" data-dock="library"><span class="dock-ico">★</span><span class="dock-label">Favorites</span><span class="dock-badge" id="library-count">0</span></button>
+</nav>
+
+<dialog id="library-dialog" class="dialog sheet">
+  <div class="dialog-body">
+    <div class="sheet-grip"></div>
+    <h3>Favorites</h3>
+    <div id="library-list" class="library-list"></div>
+
+    <div class="dialog-actions">
+      <button id="lib-export" class="ghost-btn">Copy as BibTeX-ish</button>
+      <button id="lib-close" class="primary-btn">Close</button>
+    </div>
+  </div>
+</dialog>
+
+<div id="toast" class="toast hidden" popover="manual"></div>
+
+<script type="module" src="js/app.js"></script>
+<script type="module" src="js/ui.js"></script>
+</body>
+</html>
