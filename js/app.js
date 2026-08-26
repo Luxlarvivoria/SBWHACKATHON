@@ -109,6 +109,7 @@ function cardHTML(p) {
 
 async function openPaper(paper, { push = true } = {}) {
   if (!paper) return;
+  hideQuizReturn();
   state.current = paper;
   state.loaded = {};
   state.evidence = null;
@@ -157,6 +158,7 @@ function enterReading(push) {
 }
 
 function exitReading({ pop = false } = {}) {
+  hideQuizReturn();
   if (!document.body.classList.contains('reading')) return;
   document.body.classList.remove('reading');
   state.current = null;
@@ -214,20 +216,27 @@ function detailShell(p) {
   <section class="panel" id="panel-roots"></section>`;
 }
 
+function activateTab(name, paper) {
+  const tab = $(`#detail .tab[data-tab="${name}"]`);
+  if (!tab) return null;
+  $$('#detail .tab').forEach((t) => t.classList.toggle('on', t === tab));
+  $$('#detail .panel').forEach((p) => p.classList.toggle('on', p.id === `panel-${name}`));
+
+  if (name === 'quiz' && !state.loaded.quiz) {
+    state.loaded.quiz = true;
+    mountQuiz($('#panel-quiz'), paper, state.evidence);
+  }
+  if (name === 'voices' && !state.loaded.voices) fillVoicesPanel(paper, state.token);
+  if (name === 'roots' && !state.loaded.roots) fillRootsPanel(paper, state.token);
+  if (name === 'quiz') hideQuizReturn();
+  return $(`#panel-${name}`);
+}
+
 function wireDetail(paper) {
   $$('#detail .tab').forEach((tab) => {
     tab.addEventListener('click', () => {
-      $$('#detail .tab').forEach((t) => t.classList.toggle('on', t === tab));
-      $$('#detail .panel').forEach((p) => p.classList.toggle('on', p.id === `panel-${tab.dataset.tab}`));
-
+      activateTab(tab.dataset.tab, paper);
       $('#detail-pane').scrollTop = 0;
-      const name = tab.dataset.tab;
-      if (name === 'quiz' && !state.loaded.quiz) {
-        state.loaded.quiz = true;
-        mountQuiz($('#panel-quiz'), paper, state.evidence);
-      }
-      if (name === 'voices' && !state.loaded.voices) fillVoicesPanel(paper, state.token);
-      if (name === 'roots' && !state.loaded.roots) fillRootsPanel(paper, state.token);
     });
   });
 
@@ -260,8 +269,8 @@ function wireDetail(paper) {
     btn.disabled = true;
     try {
       downloadPDF(summaryBlocks(paper), {
-        title: `${paper.title} — Consilium summary`,
-        footer: `Consilium summary - ${paper.doi ? `doi:${paper.doi}` : paper.url || 'no DOI'}`,
+        title: `${paper.title} — Educata summary`,
+        footer: `Educata summary - ${paper.doi ? `doi:${paper.doi}` : paper.url || 'no DOI'}`,
       }, `${filenameFor(paper)}.pdf`);
       toast('Summary PDF downloaded');
     } catch (err) {
@@ -284,6 +293,90 @@ function wireDetail(paper) {
       btn.disabled = false; btn.textContent = '✨ Rewrite with Claude';
     }
   });
+}
+
+/* ---- Jumping from a quiz answer to the part of the paper it came from ---- */
+
+const normPart = (t) => String(t || '').toLowerCase().replace(/\s+/g, ' ').trim();
+let flashTimer;
+
+// How far down the pane the target has to sit to clear whatever is stuck to the top.
+function partOffset() {
+  const shown = (el) => el && getComputedStyle(el).display !== 'none';
+  let off = 16;
+  if (window.matchMedia('(min-width:901px)').matches) {
+    const tabs = $('#detail .tabs');
+    if (shown(tabs)) off += tabs.offsetHeight;
+  } else {
+    const nav = $('#detail .detail-nav');
+    const actions = $('#detail .detail-actions');
+    if (shown(nav)) off += nav.offsetHeight;
+    if (shown(actions)) off += actions.offsetHeight;
+  }
+  return off;
+}
+
+function findPart(panel, part) {
+  if (part.sel) {
+    const el = $(part.sel, $('#detail'));
+    if (el) return el;
+  }
+  for (const name of part.sections || []) {
+    const want = normPart(name);
+    const hit = $$('.section-title', panel).find((h) => normPart(h.textContent).startsWith(want));
+    if (hit) return hit;
+  }
+  return null;
+}
+
+function flashPart(el) {
+  clearTimeout(flashTimer);
+  const clear = () => $$('#detail .part-flash, #detail .part-flash-body')
+    .forEach((n) => n.classList.remove('part-flash', 'part-flash-body'));
+  clear();
+
+  const group = [el];
+  if (el.classList.contains('section-title')) {
+    const next = el.nextElementSibling;
+    if (next && !next.classList.contains('section-title')) group.push(next);
+  }
+  void el.offsetWidth;
+  el.classList.add('part-flash');
+  group.slice(1).forEach((n) => n.classList.add('part-flash-body'));
+  flashTimer = setTimeout(clear, 5200);
+}
+
+function gotoDetailPart(part) {
+  if (!part || !state.current) return;
+  const panel = activateTab(part.tab || 'read', state.current);
+  if (!panel) return;
+  showQuizReturn();
+
+  let tries = 0;
+  const attempt = () => {
+    const target = findPart(panel, part);
+    if (!target) {
+      if (++tries < 8) { setTimeout(attempt, 350); return; }
+      $('#detail-pane').scrollTop = 0;
+      toast('That section is still loading \u2014 give it a second and try again');
+      return;
+    }
+    flashPart(target);
+    const pane = $('#detail-pane');
+    const top = target.getBoundingClientRect().top - pane.getBoundingClientRect().top + pane.scrollTop;
+    pane.scrollTo({ top: Math.max(0, top - partOffset()), behavior: 'smooth' });
+  };
+  requestAnimationFrame(attempt);
+}
+
+function showQuizReturn() {
+  const btn = $('#quiz-return');
+  if (btn && state.loaded.quiz) btn.hidden = false;
+}
+
+function hideQuizReturn() {
+  const btn = $('#quiz-return');
+  if (btn) btn.hidden = true;
 }
 
 function citation(p) {
@@ -311,7 +404,7 @@ const sentenceCased = (t) => (/^[a-z]/.test(t) ? t.charAt(0).toUpperCase() + t.s
 function filenameFor(p) {
   const first = (p.authors[0]?.name || 'paper').split(' ').pop().toLowerCase();
   const slug = p.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48);
-  return `consilium-${first}${p.year || ''}-${slug}`.replace(/-+/g, '-');
+  return `educata-${first}${p.year || ''}-${slug}`.replace(/-+/g, '-');
 }
 
 function summaryBlocks(paper) {
@@ -377,7 +470,7 @@ function summaryBlocks(paper) {
   }
 
   blocks.push({ style: 'rule' });
-  blocks.push({ style: 'meta', text: `Generated by Consilium on ${new Date().toLocaleDateString()}. `
+  blocks.push({ style: 'meta', text: `Generated by Educata on ${new Date().toLocaleDateString()}. `
     + 'The plain-language read is produced automatically from the published abstract and is a reading aid, '
     + 'not a substitute for the paper itself.' });
   if (paper.url) blocks.push({ style: 'meta', text: `Source: ${paper.url}` });
@@ -716,6 +809,13 @@ function init() {
       return;
     }
     if (card) openPaper(state.papers.find((x) => x.id === card.dataset.id));
+  });
+
+  document.addEventListener('quiz:goto', (e) => gotoDetailPart(e.detail));
+  $('#quiz-return')?.addEventListener('click', () => {
+    if (!state.current) { hideQuizReturn(); return; }
+    activateTab('quiz', state.current);
+    $('#detail-pane').scrollTop = 0;
   });
 
   document.addEventListener('ui:exit-reading', () => exitReading());

@@ -99,7 +99,7 @@ function layout(blocks, footer) {
   ]);
 }
 
-export function buildPDF(blocks, { title = 'Summary', footer = 'Consilium' } = {}) {
+export function buildPDF(blocks, { title = 'Summary', footer = 'Educata' } = {}) {
   const pages = layout(blocks, footer);
   const objects = [];
   const add = (body) => { objects.push(body); return objects.length; };
@@ -118,7 +118,7 @@ export function buildPDF(blocks, { title = 'Summary', footer = 'Consilium' } = {
     pageIds.push(pageId);
   }
 
-  const infoId = add(`<< /Title (${escapePDF(ascii(title))}) /Producer (Consilium) /Creator (Consilium) >>`);
+  const infoId = add(`<< /Title (${escapePDF(ascii(title))}) /Producer (Educata) /Creator (Educata) >>`);
   objects[catalogId - 1] = `<< /Type /Catalog /Pages ${pagesId} 0 R >>`;
   objects[pagesId - 1] = `<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(' ')}] /Count ${pageIds.length} >>`;
 

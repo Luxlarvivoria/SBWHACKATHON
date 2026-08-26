@@ -12,6 +12,25 @@ const sentenceish = (s) => {
   return /^[a-z]/.test(t) ? t.charAt(0).toUpperCase() + t.slice(1) : t;
 };
 
+// Every question knows which part of the read it was built from, so a miss can
+// point straight back at it. `sections` are matched against the .section-title
+// headings in that tab, in order, so the first one that exists on the page wins.
+const PART = {
+  design:    { tab: 'read', sections: ['Key facts'], label: 'Key facts \u2192 study design' },
+  published: { tab: 'read', sections: ['Key facts'], label: 'Key facts \u2192 published' },
+  sample:    { tab: 'read', sections: ['Key facts'], label: 'Key facts \u2192 sample size' },
+  status:    { tab: 'read', sel: '.detail-meta', sections: [], label: 'the badges under the title' },
+  claim:     { tab: 'read', sections: ['The claim in one breath', 'Plain-language read'], label: 'The claim in one breath' },
+  caution:   { tab: 'read', sections: ['Read this with caution'], label: 'Read this with caution' },
+  weight:    { tab: 'read', sections: ['How much weight it deserves'], label: 'How much weight it deserves' },
+  numbers:   { tab: 'read', sections: ['The numbers it rests on', 'Statistics pulled out of the prose', 'Original abstract'], label: 'The numbers it rests on' },
+  field:     { tab: 'evidence', sections: ['Where the field landed'], label: 'Supports & challenges' },
+};
+
+const jumpTo = (part) => {
+  if (part) document.dispatchEvent(new CustomEvent('quiz:goto', { detail: part }));
+};
+
 const DESIGN_POOL = [
   'Meta-analysis / systematic review', 'Randomised controlled trial', 'Prospective cohort',
   'Retrospective / case-control', 'Cross-sectional survey', 'Case report / series',
@@ -58,6 +77,7 @@ function statCloze(paper) {
     return {
       level: 3,
       tag: 'The numbers',
+      part: PART.numbers,
       q: 'Fill the gap from the paper\'s own reported result:',
       stem,
       options: [{ text: value, ok: true }, ...pick(alts, 3).map((t) => ({ text: t, ok: false }))],
@@ -94,6 +114,7 @@ export function buildBank(paper, evidence) {
   bank.push({
     level: 1,
     tag: 'Key facts',
+    part: PART.design,
     q: 'What kind of study is this?',
     options: [
       { text: design.label, ok: true },
@@ -107,6 +128,7 @@ export function buildBank(paper, evidence) {
     bank.push({
       level: 1,
       tag: 'Key facts',
+      part: PART.published,
       q: 'When was this published?',
       options: [
         { text: String(y), ok: true },
@@ -121,6 +143,7 @@ export function buildBank(paper, evidence) {
     bank.push({
       level: 2,
       tag: 'Key facts',
+      part: PART.sample,
       q: 'Roughly how many subjects does the paper report?',
       options: [
         { text: n.toLocaleString(), ok: true },
@@ -133,6 +156,7 @@ export function buildBank(paper, evidence) {
     bank.push({
       level: 2,
       tag: 'Key facts',
+      part: PART.sample,
       q: 'What does the abstract say about how many subjects were studied?',
       options: [
         { text: 'It never states a sample size', ok: true },
@@ -151,6 +175,7 @@ export function buildBank(paper, evidence) {
   bank.push({
     level: 1,
     tag: 'Key facts',
+    part: PART.status,
     q: 'What is this paper\'s publication status?',
     options: shuffleOptions([
       { text: statusTrue, ok: true },
@@ -170,6 +195,7 @@ export function buildBank(paper, evidence) {
     bank.push({
       level: 2,
       tag: 'Plain read',
+      part: PART.claim,
       q: 'Which statement matches what the paper actually found?',
       options: shuffleOptions([
         { text: sentenceish(claim), ok: true },
@@ -185,6 +211,7 @@ export function buildBank(paper, evidence) {
     bank.push({
       level: 2,
       tag: 'Read with caution',
+      part: PART.caution,
       q: 'Which of these is a real limitation of this paper?',
       options: shuffleOptions([
         { text: sentenceish(cav[0]), ok: true },
@@ -199,6 +226,7 @@ export function buildBank(paper, evidence) {
   bank.push({
     level: 2,
     tag: 'Weight',
+    part: PART.weight,
     q: 'How much weight does this paper deserve, on the evidence?',
     options: shuffleOptions([
       { text: strength.label, ok: true },
@@ -215,6 +243,7 @@ export function buildBank(paper, evidence) {
   bank.push({
     level: 3,
     tag: 'Interpretation',
+    part: PART.design,
     q: named
       ? `Given it is ${article} ${design.label.toLowerCase()}, which conclusion does the design NOT license?`
       : 'Given the design this abstract describes, which conclusion does it NOT license?',
@@ -238,6 +267,7 @@ export function buildBank(paper, evidence) {
     bank.push({
       level: 3,
       tag: 'Supports & challenges',
+      part: PART.field,
       q: 'How did the field respond to this paper?',
       options: shuffleOptions([
         { text: verdict, ok: true },
@@ -253,6 +283,7 @@ export function buildBank(paper, evidence) {
     bank.push({
       level: 3,
       tag: 'Interpretation',
+      part: PART.weight,
       q: 'A friend cites this paper as settled fact. What is the fairest correction?',
       options: shuffleOptions([
         { text: `It is ${strength.label.toLowerCase()} evidence — worth quoting with its limits attached`, ok: true },
@@ -330,7 +361,7 @@ export function mountQuiz(root, paper, evidence) {
       run.streak = 0;
       if (run.level > 1) run.level -= 1;
     }
-    run.history[run.asked - 1] = { correct, tag: q.tag, level: q.level };
+    run.history[run.asked - 1] = { correct, tag: q.tag, level: q.level, part: q.part };
 
     const fb = root.querySelector('.quiz-feedback');
     fb.hidden = false;
@@ -339,8 +370,13 @@ export function mountQuiz(root, paper, evidence) {
       <div class="quiz-verdict">${correct ? '✓ Right' : '✗ Not quite'}${
         run.asked < total ? ` · next question moves ${correct ? 'up' : 'down'} a level` : ''}</div>
       <p>${esc(q.why)}</p>
+      ${q.part ? `<div class="quiz-source ${correct ? 'quiet' : ''}">
+        <span class="quiz-source-k">${correct ? 'Where this came from' : 'Go read this bit'}</span>
+        <button class="quiz-jump" type="button">${esc(q.part.label)} →</button>
+      </div>` : ''}
       <button class="primary-btn quiz-next">${run.asked >= total ? 'See your result' : 'Next question'}</button>`;
     fb.querySelector('.quiz-next').addEventListener('click', render);
+    fb.querySelector('.quiz-jump')?.addEventListener('click', () => jumpTo(q.part));
     fb.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
@@ -350,7 +386,10 @@ export function mountQuiz(root, paper, evidence) {
     const verdict = pct >= 85 ? 'You have this paper cold.'
       : pct >= 60 ? 'You have the shape of it — the details need another pass.'
         : 'Worth re-reading before you cite this one.';
-    const weak = [...new Set(run.history.filter((h) => !h.correct).map((h) => h.tag))];
+    const missed = [];
+    run.history.filter((h) => !h.correct && h.part).forEach((h) => {
+      if (!missed.some((m) => m.label === h.part.label)) missed.push(h.part);
+    });
 
     root.innerHTML = `
       <div class="quiz quiz-result">
@@ -359,13 +398,18 @@ export function mountQuiz(root, paper, evidence) {
         </div>
         <h3 class="quiz-q">${esc(verdict)}</h3>
         <p class="muted">${right} of ${run.history.length} correct · reached level ${Math.max(1, run.level)} of 3 · weighted for difficulty</p>
-        ${weak.length ? `<div class="section-title">Go back over</div>
-          <div class="suggest-row">${weak.map((w) => `<span class="chip">${esc(w)}</span>`).join('')}</div>` : ''}
+        ${missed.length ? `<div class="section-title">Go back over</div>
+          <p class="quiz-source-k" style="margin:-4px 0 12px">Tap one to jump straight to that part of the paper</p>
+          <div class="suggest-row">${missed.map((m, i) =>
+            `<button class="suggest quiz-jump" type="button" data-miss="${i}">${esc(m.label)} →</button>`).join('')}</div>` : ''}
         <div class="quiz-actions">
           <button class="primary-btn quiz-again">Run it again</button>
         </div>
         <p class="note">Questions are built from this paper's own abstract, design and citation record — a fresh run reshuffles them and starts you back at level 2.</p>
       </div>`;
+    root.querySelectorAll('[data-miss]').forEach((btn) => {
+      btn.addEventListener('click', () => jumpTo(missed[Number(btn.dataset.miss)]));
+    });
     root.querySelector('.quiz-again').addEventListener('click', () => {
       run.used.clear(); run.level = 2; run.streak = 0; run.asked = 0;
       run.score = 0; run.max = 0; run.history = [];
@@ -380,6 +424,8 @@ export function mountQuiz(root, paper, evidence) {
         <h3 class="quiz-q">${total} questions that adapt to you</h3>
         <p>Start at level 2. Two right in a row and the questions get harder; miss one and they ease off.
            Everything is drawn from this paper — its design, its numbers, its limits, and how the field responded.</p>
+        <p>Get one wrong and you can jump straight to the part of the read it came from, then come
+           back to the quiz where you left off.</p>
         <div class="quiz-actions"><button class="primary-btn quiz-start">Start the quiz</button></div>
       </div>`;
     root.querySelector('.quiz-start').addEventListener('click', render);
