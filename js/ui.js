@@ -62,7 +62,11 @@ $$('dialog.sheet').forEach((dlg) => {
   window.addEventListener('pointerup', up);
 });
 
-const RECENTS = 'consilium.recents';
+const RECENTS = 'educata.recents';
+try {
+  const prev = localStorage.getItem('consilium.recents');
+  if (prev != null && localStorage.getItem(RECENTS) == null) localStorage.setItem(RECENTS, prev);
+} catch {  }
 const readRecents = () => { try { return JSON.parse(localStorage.getItem(RECENTS)) || []; } catch { return []; } };
 
 function renderRecents() {

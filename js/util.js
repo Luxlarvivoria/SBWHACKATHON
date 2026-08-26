@@ -5,8 +5,18 @@ export const esc = (s) =>
   String(s ?? '').replace(/[&<>"']/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-const SKEY = 'consilium.settings.v1';
-const LKEY = 'consilium.library.v1';
+const SKEY = 'educata.settings.v1';
+const LKEY = 'educata.library.v1';
+
+// Carry anything saved under the previous site name over to the new keys.
+(() => {
+  try {
+    for (const [from, to] of [['consilium.settings.v1', SKEY], ['consilium.library.v1', LKEY]]) {
+      const prev = localStorage.getItem(from);
+      if (prev != null && localStorage.getItem(to) == null) localStorage.setItem(to, prev);
+    }
+  } catch {  }
+})();
 
 export const settings = {
   get() {
